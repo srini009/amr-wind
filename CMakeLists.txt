@@ -7,6 +7,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(amr-wind-utils)
+#Ascent Microservice Package
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(AMS_CLIENT REQUIRED IMPORTED_TARGET ams-client)
+pkg_check_modules (UUID REQUIRED IMPORTED_TARGET uuid)
 
 ########################## OPTIONS #####################################
 
@@ -144,6 +148,8 @@ if(AMR_WIND_ENABLE_ASCENT)
     message(STATUS "Found Ascent = ${ASCENT_INCLUDE_DIRS}")
   endif()
   target_link_libraries(${amr_wind_lib_name} PUBLIC ascent::ascent)
+  target_link_libraries(${amr_wind_lib_name} PUBLIC PkgConfig::AMS_CLIENT)
+  target_link_libraries(${amr_wind_lib_name} PUBLIC PkgConfig::UUID)
   target_compile_definitions(${amr_wind_lib_name} PRIVATE AMR_WIND_USE_ASCENT)
 endif()
 
