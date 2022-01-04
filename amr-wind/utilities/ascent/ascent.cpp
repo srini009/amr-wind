@@ -166,24 +166,23 @@ void AscentPostProcess::post_advance_work()
     ams::Client client(engine);
 
     // Open the Database "mydatabase" from provider 0
-    ams::NodeHandle node =
+    ams::NodeHandle ams_client =
         client.makeNodeHandle(g_address, g_provider_id,
                 ams::UUID::from_string(g_node.c_str()));
 
-    node.sayHello();
+    ams_client.sayHello();
 
 
 #ifdef BL_USE_MPI
-    std::cout << "Do I get invoked???" << std::endl;
     open_opts["mpi_comm"] =
         MPI_Comm_c2f(amrex::ParallelDescriptor::Communicator());
 #endif
 
     if(!use_local) {
 	std::cout << "Using Ascent microservice!" << std::endl;
-        node.ams_open(open_opts);
+        ams_client.ams_open(open_opts);
     } else {
-        ascent.open();
+        ascent.open(open_opts);
 	std::cout << "Using local Ascent!" << std::endl;
     }
 
@@ -201,7 +200,7 @@ void AscentPostProcess::post_advance_work()
      * 2. Check the size of the string thus created --- too large? RDMA. Else: inline RPC argument
      * 3. Send RPC call. This can be one-sided (asynchronous) ! Very fast as I do not need a response from server.*/ 
     if(!use_local) {
-        node.ams_publish_and_execute(bp_mesh, actions);
+        ams_client.ams_publish_and_execute(bp_mesh, actions);
     } else {
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
@@ -209,7 +208,7 @@ void AscentPostProcess::post_advance_work()
 
 
     if(!use_local) {
-        node.ams_close();
+        ams_client.ams_close();
     } else {
 	ascent.close();
     }
