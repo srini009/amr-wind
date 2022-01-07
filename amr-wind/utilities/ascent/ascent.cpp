@@ -7,6 +7,7 @@
 #include "AMReX_Conduit_Blueprint.H"
 
 #include <ascent.hpp>
+#include <unistd.h>
 #include <tclap/CmdLine.h>
 #include <ams/Client.hpp>
 
@@ -170,21 +171,14 @@ void AscentPostProcess::post_advance_work()
         client.makeNodeHandle(g_address, g_provider_id,
                 ams::UUID::from_string(g_node.c_str()));
 
-    ams_client.sayHello();
-
+    //Add current directory to open opts
+    open_opts["default_dir"] = getenv("AMS_WORKING_DIR");
+    open_opts["actions_file"] = getenv("AMS_ACTIONS_FILE");
 
 #ifdef BL_USE_MPI
     open_opts["mpi_comm"] =
         MPI_Comm_c2f(amrex::ParallelDescriptor::Communicator());
 #endif
-
-    if(!use_local) {
-	std::cout << "Using Ascent microservice!" << std::endl;
-        ams_client.ams_open(open_opts);
-    } else {
-        ascent.open(open_opts);
-	std::cout << "Using local Ascent!" << std::endl;
-    }
 
     conduit::Node verify_info;
     if (!conduit::blueprint::mesh::verify(bp_mesh, verify_info)) {
@@ -194,22 +188,20 @@ void AscentPostProcess::post_advance_work()
 
     conduit::Node actions;
 
-
     /* This is an RPC call. What happens under the hood is: 
-     * 1. Convert bp_mesh (a conduit "Node") to a string representation using bp_mesh.to_string()
-     * 2. Check the size of the string thus created --- too large? RDMA. Else: inline RPC argument
-     * 3. Send RPC call. This can be one-sided (asynchronous) ! Very fast as I do not need a response from server.*/ 
+     * 1. Convert open_opts, bp_mesh, and actions (a conduit "Node") to a string representation using conduit::Node.to_string()
+     * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
     if(!use_local) {
+	std::cout << "Using Ascent microservice!" << std::endl;
+        ams_client.ams_open(open_opts);
         ams_client.ams_publish_and_execute(bp_mesh, actions);
+	ams_client.ams_close();
+        /*ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions);*/
     } else {
+	std::cout << "Using local Ascent!" << std::endl;
+        ascent.open(open_opts);
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
-    }
-
-
-    if(!use_local) {
-        ams_client.ams_close();
-    } else {
 	ascent.close();
     }
 }
