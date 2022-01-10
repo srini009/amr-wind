@@ -10,6 +10,9 @@
 #include <unistd.h>
 #include <tclap/CmdLine.h>
 #include <ams/Client.hpp>
+#include <conduit_blueprint.hpp>
+#include <conduit_blueprint_mesh_utils.hpp>
+#include <conduit_blueprint_mpi_mesh.hpp>
 
 
 namespace tl = thallium;
@@ -18,11 +21,13 @@ namespace ascent_int {
 
 static std::string g_address_file;
 static std::string g_address;
-static std::string g_protocol;
+static std::string g_protocol = "na+sm";
 static std::string g_node;
 static unsigned    g_provider_id;
 static std::string g_log_level = "info";
 int use_local = 1;
+int i_should_participate_in_server_calls = 0;
+int num_server = 1;
 
 static void parse_command_line();
 
@@ -54,27 +59,34 @@ void parse_command_line() {
 	char *addr_file_name = getenv("AMS_SERVER_ADDR_FILE");
 	char *node_file_name = getenv("AMS_NODE_ADDR_FILE");
 	char *use_local_opt = getenv("AMS_USE_LOCAL_ASCENT");
+	char *num_servers = getenv("AMS_NUM_SERVERS");
 
 	/* The logic below grabs the server address corresponding the client's MPI rank (MXM case) */
-	size_t pos = 0;
-        g_address_file = std::string(addr_file_name);
-	std::string delimiter = " ";
-	std::string l = read_nth_line(g_address_file, rank+1);
-	pos = l.find(delimiter);
-	std::string server_rank_str = l.substr(0, pos);
-	std::stringstream s_(server_rank_str);
-	int server_rank;
-	s_ >> server_rank;
-	assert(server_rank == rank);
-	l.erase(0, pos + delimiter.length());
-	g_address = l;
+	std::string num_servers_str = num_servers;
+	std::stringstream n_(num_servers_str);
+	n_ >> num_server;
 	std::string use_local_str = use_local_opt;
 	std::stringstream s__(use_local_str);
 	s__ >> use_local;
 
-        g_provider_id = 0;
-        g_node = read_nth_line(std::string(node_file_name), rank);
-        g_protocol = g_address.substr(0, g_address.find(":"));
+	if(rank + 1 <= num_server) {
+		size_t pos = 0;
+        	g_address_file = std::string(addr_file_name);
+		std::string delimiter = " ";
+		std::string l = read_nth_line(g_address_file, rank+1);
+		pos = l.find(delimiter);
+		std::string server_rank_str = l.substr(0, pos);
+		std::stringstream s_(server_rank_str);
+		int server_rank;
+		s_ >> server_rank;
+		assert(server_rank == rank);
+		l.erase(0, pos + delimiter.length());
+		g_address = l;
+	        g_provider_id = 0;
+	        g_node = read_nth_line(std::string(node_file_name), rank);
+	        g_protocol = g_address.substr(0, g_address.find(":"));
+		i_should_participate_in_server_calls = 1;
+	}
 }
 
 AscentPostProcess::AscentPostProcess(CFDSim& sim, const std::string& label)
@@ -162,20 +174,24 @@ void AscentPostProcess::post_advance_work()
 
     ascent::Ascent ascent;
     conduit::Node open_opts;
-    // Initialize a Client
-    tl::engine engine(g_protocol, THALLIUM_CLIENT_MODE);
-    ams::Client client(engine);
 
     // Open the Database "mydatabase" from provider 0
-    ams::NodeHandle ams_client =
-        client.makeNodeHandle(g_address, g_provider_id,
-                ams::UUID::from_string(g_node.c_str()));
+    ams::NodeHandle ams_client;
+    tl::engine engine(g_protocol, THALLIUM_CLIENT_MODE);
+    ams::Client client(engine);
+    if(i_should_participate_in_server_calls) {
+    	// Initialize a Client
+        ams_client = client.makeNodeHandle(g_address, g_provider_id,
+                    ams::UUID::from_string(g_node.c_str()));
+    }
 
     //Add current directory to open opts
     open_opts["default_dir"] = getenv("AMS_WORKING_DIR");
     open_opts["actions_file"] = getenv("AMS_ACTIONS_FILE");
 
+    int my_rank = 0;
 #ifdef BL_USE_MPI
+    MPI_Comm_rank(amrex::ParallelDescriptor::Communicator(), &my_rank);
     open_opts["mpi_comm"] =
         MPI_Comm_c2f(amrex::ParallelDescriptor::Communicator());
 #endif
@@ -186,24 +202,33 @@ void AscentPostProcess::post_advance_work()
         verify_info.print();
     }
 
+    /* Mesh partitioning using Conduit */
+    conduit::Node partitioned_mesh;
+    conduit::Node partitioning_options;
+    if(!use_local) {
+        partitioning_options["target"] = num_server;
+	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, amrex::ParallelDescriptor::Communicator());
+    }
+
     conduit::Node actions;
 
     /* This is an RPC call. What happens under the hood is: 
      * 1. Convert open_opts, bp_mesh, and actions (a conduit "Node") to a string representation using conduit::Node.to_string()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
-    if(!use_local) {
+    if(!use_local and i_should_participate_in_server_calls) {
 	std::cout << "Using Ascent microservice!" << std::endl;
-        ams_client.ams_open(open_opts);
+        /*ams_client.ams_open(open_opts);
         ams_client.ams_publish_and_execute(bp_mesh, actions);
-	ams_client.ams_close();
-        /*ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions);*/
-    } else {
+	ams_client.ams_close();*/
+        ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, actions);
+    } else if(use_local) {
 	std::cout << "Using local Ascent!" << std::endl;
         ascent.open(open_opts);
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
 	ascent.close();
     }
+    MPI_Barrier(amrex::ParallelDescriptor::Communicator());
 }
 
 void AscentPostProcess::post_regrid_actions()
