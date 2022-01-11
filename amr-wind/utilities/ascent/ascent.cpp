@@ -205,13 +205,15 @@ void AscentPostProcess::post_advance_work()
     /* Mesh partitioning using Conduit */
     conduit::Node partitioned_mesh;
     conduit::Node partitioning_options;
-    if(!use_local) {
+/*if(!use_local) {
         partitioning_options["target"] = num_server;
 	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, amrex::ParallelDescriptor::Communicator());
-    }
+    }*/
 
     conduit::Node actions;
+    ams::AsyncRequest req;
 
+    double start = MPI_Wtime();
     /* This is an RPC call. What happens under the hood is: 
      * 1. Convert open_opts, bp_mesh, and actions (a conduit "Node") to a string representation using conduit::Node.to_string()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
@@ -220,7 +222,7 @@ void AscentPostProcess::post_advance_work()
         /*ams_client.ams_open(open_opts);
         ams_client.ams_publish_and_execute(bp_mesh, actions);
 	ams_client.ams_close();*/
-        ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, actions);
+        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, &req);
     } else if(use_local) {
 	std::cout << "Using local Ascent!" << std::endl;
         ascent.open(open_opts);
@@ -228,7 +230,11 @@ void AscentPostProcess::post_advance_work()
 	ascent.execute(actions);
 	ascent.close();
     }
+    double end = MPI_Wtime();
+    std::cout << "Total time for ascent call on process: " << end-start << std::endl;
+
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+    
 }
 
 void AscentPostProcess::post_regrid_actions()
