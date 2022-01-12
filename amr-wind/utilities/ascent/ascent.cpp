@@ -219,21 +219,22 @@ void AscentPostProcess::post_advance_work()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
     if(!use_local and i_should_participate_in_server_calls) {
 	std::cout << "Using Ascent microservice!" << std::endl;
-        /*ams_client.ams_open(open_opts);
-        ams_client.ams_publish_and_execute(bp_mesh, actions);
-	ams_client.ams_close();*/
-        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, &req);
+
+        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions);
+
     } else if(use_local) {
 	std::cout << "Using local Ascent!" << std::endl;
+
         ascent.open(open_opts);
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
 	ascent.close();
     }
-    double end = MPI_Wtime();
-    std::cout << "Total time for ascent call on process: " << end-start << std::endl;
 
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+
+    double end = MPI_Wtime();
+    std::cout << "Total time for ascent call on process: " << end-start << std::endl;
     
 }
 
