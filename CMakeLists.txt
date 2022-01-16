@@ -9,8 +9,13 @@ include(GNUInstallDirs)
 include(amr-wind-utils)
 #Ascent Microservice Package
 find_package(PkgConfig REQUIRED)
+find_package (thallium REQUIRED)
+find_package (nlohmann_json REQUIRED)
+# search for spdlog
 pkg_check_modules(AMS_CLIENT REQUIRED IMPORTED_TARGET ams-client)
+pkg_check_modules(TCLAP REQUIRED IMPORTED_TARGET tclap)
 pkg_check_modules (UUID REQUIRED IMPORTED_TARGET uuid)
+
 
 ########################## OPTIONS #####################################
 
@@ -154,6 +159,8 @@ if(AMR_WIND_ENABLE_ASCENT)
   endif()
   target_link_libraries(${amr_wind_lib_name} PUBLIC PkgConfig::AMS_CLIENT)
   target_link_libraries(${amr_wind_lib_name} PUBLIC PkgConfig::UUID)
+  target_link_libraries(${amr_wind_lib_name} PUBLIC nlohmann_json::nlohmann_json)
+  target_link_libraries(${amr_wind_lib_name} PUBLIC PkgConfig::TCLAP)
   target_compile_definitions(${amr_wind_lib_name} PRIVATE AMR_WIND_USE_ASCENT)
 endif()
 
