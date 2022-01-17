@@ -218,12 +218,10 @@ void AscentPostProcess::post_advance_work()
      * 1. Convert open_opts, bp_mesh, and actions (a conduit "Node") to a string representation using conduit::Node.to_string()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
     if(!use_local and i_should_participate_in_server_calls) {
-	std::cout << "Using Ascent microservice!" << std::endl;
 
         ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions);
 
     } else if(use_local) {
-	std::cout << "Using local Ascent!" << std::endl;
 
         ascent.open(open_opts);
 	ascent.publish(bp_mesh);
@@ -234,7 +232,8 @@ void AscentPostProcess::post_advance_work()
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
 
     double end = MPI_Wtime();
-    std::cout << "Total time for ascent call on process: " << end-start << std::endl;
+    if(my_rank == 0) 
+        std::cout << "Total time for ascent call on process: " << end-start << std::endl;
     
 }
 
