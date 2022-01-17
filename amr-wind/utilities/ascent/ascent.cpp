@@ -28,6 +28,8 @@ static std::string g_log_level = "info";
 int use_local = 1;
 int i_should_participate_in_server_calls = 0;
 int num_server = 1;
+tl::engine *engine;
+ams::Client *client;
 
 static void parse_command_line();
 
@@ -132,6 +134,8 @@ void AscentPostProcess::post_advance_work()
         /*Connect to server */
         parse_command_line();
 	ams_initialized = 1;
+	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE);
+	client = new ams::Client(*engine);
     }
     BL_PROFILE("amr-wind::AscentPostProcess::post_advance_work");
 
@@ -177,14 +181,11 @@ void AscentPostProcess::post_advance_work()
 
     // Open the Database "mydatabase" from provider 0
     ams::NodeHandle ams_client;
-    tl::engine engine(g_protocol, THALLIUM_CLIENT_MODE);
-    ams::Client client(engine);
     if(i_should_participate_in_server_calls) {
     	// Initialize a Client
-        ams_client = client.makeNodeHandle(g_address, g_provider_id,
+        ams_client = (*client).makeNodeHandle(g_address, g_provider_id,
                     ams::UUID::from_string(g_node.c_str()));
     }
-
     //Add current directory to open opts
     open_opts["default_dir"] = getenv("AMS_WORKING_DIR");
     open_opts["actions_file"] = getenv("AMS_ACTIONS_FILE");
