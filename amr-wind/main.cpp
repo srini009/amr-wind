@@ -9,6 +9,7 @@ int main(int argc, char* argv[])
     MPI_Init(&argc, &argv);
 #endif
 
+    amrex::Real start = amrex::ParallelDescriptor::second(); 
     if (argc < 2) {
         // Print usage and exit with error code if no input file was provided.
         amr_wind::io::print_usage(MPI_COMM_WORLD, std::cout);
@@ -86,6 +87,14 @@ int main(int argc, char* argv[])
                        << std::endl;
         amrex::Print() << "Time spent in Evolve():      "
                        << end_time - init_time << std::endl;
+
+	amrex::Real end = amrex::ParallelDescriptor::second() - start;
+	amrex::ParallelDescriptor::ReduceRealMax(
+            start, amrex::ParallelDescriptor::IOProcessorNumber());
+	amrex::ParallelDescriptor::ReduceRealMax(
+            end, amrex::ParallelDescriptor::IOProcessorNumber());
+        amrex::Print() << "Total time:      "
+                       << end << std::endl;
     }
     amrex::Finalize();
 #ifdef AMREX_USE_MPI

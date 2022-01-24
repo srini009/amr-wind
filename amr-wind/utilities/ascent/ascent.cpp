@@ -30,6 +30,7 @@ int i_should_participate_in_server_calls = 0;
 int num_server = 1;
 tl::engine *engine;
 ams::Client *client;
+ams::NodeHandle ams_client;
 
 static void parse_command_line();
 
@@ -132,11 +133,18 @@ void AscentPostProcess::post_advance_work()
     static int ams_initialized = 0;
     if(!ams_initialized) {
         /*Connect to server */
+	sleep(20);
         parse_command_line();
 	ams_initialized = 1;
 	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE);
 	client = new ams::Client(*engine);
+    	if(i_should_participate_in_server_calls) {
+    	    // Initialize a Client
+            ams_client = (*client).makeNodeHandle(g_address, g_provider_id,
+            	ams::UUID::from_string(g_node.c_str()));
+    	}
     }
+    double start = MPI_Wtime();
     BL_PROFILE("amr-wind::AscentPostProcess::post_advance_work");
 
     const auto& time = m_sim.time();
@@ -179,16 +187,10 @@ void AscentPostProcess::post_advance_work()
     ascent::Ascent ascent;
     conduit::Node open_opts;
 
-    // Open the Database "mydatabase" from provider 0
-    ams::NodeHandle ams_client;
-    if(i_should_participate_in_server_calls) {
-    	// Initialize a Client
-        ams_client = (*client).makeNodeHandle(g_address, g_provider_id,
-                    ams::UUID::from_string(g_node.c_str()));
-    }
     //Add current directory to open opts
     open_opts["default_dir"] = getenv("AMS_WORKING_DIR");
     open_opts["actions_file"] = getenv("AMS_ACTIONS_FILE");
+    open_opts["task_id"] = std::stoi(std::string(getenv("AMS_TASK_ID")));
 
     int my_rank = 0;
 #ifdef BL_USE_MPI
@@ -206,21 +208,22 @@ void AscentPostProcess::post_advance_work()
     /* Mesh partitioning using Conduit */
     conduit::Node partitioned_mesh;
     conduit::Node partitioning_options;
-/*if(!use_local) {
+    /*if(!use_local) {
         partitioning_options["target"] = num_server;
 	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, amrex::ParallelDescriptor::Communicator());
     }*/
 
     conduit::Node actions;
-    ams::AsyncRequest req;
 
-    double start = MPI_Wtime();
     /* This is an RPC call. What happens under the hood is: 
      * 1. Convert open_opts, bp_mesh, and actions (a conduit "Node") to a string representation using conduit::Node.to_string()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
+    MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+
+    ams::AsyncRequest areq;
     if(!use_local and i_should_participate_in_server_calls) {
 
-        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions);
+        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, &areq);
 
     } else if(use_local) {
 
@@ -233,7 +236,7 @@ void AscentPostProcess::post_advance_work()
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
 
     double end = MPI_Wtime();
-    if(my_rank == 0) 
+    if(my_rank == 0)
         std::cout << "Total time for ascent call on process: " << end-start << std::endl;
     
 }
