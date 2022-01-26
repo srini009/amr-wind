@@ -220,10 +220,17 @@ void AscentPostProcess::post_advance_work()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
 
+    double ts;
+    if(my_rank == 0) {
+	    ts = MPI_Wtime();
+    }
+
+    /* If I am rank 0, I broadcast the ts to everyone else */
+    MPI_Bcast(&ts, 1, MPI_DOUBLE, 0, amrex::ParallelDescriptor::Communicator());
+
     ams::AsyncRequest areq;
     if(!use_local and i_should_participate_in_server_calls) {
-
-        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, &areq);
+        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, ts, &areq);
 
     } else if(use_local) {
 
