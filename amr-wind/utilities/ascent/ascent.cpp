@@ -13,7 +13,9 @@
 #include <conduit_blueprint.hpp>
 #include <conduit_blueprint_mesh_utils.hpp>
 #include <conduit_blueprint_mpi_mesh.hpp>
-
+#include <abt.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 namespace tl = thallium;
 namespace amr_wind {
@@ -133,10 +135,10 @@ void AscentPostProcess::post_advance_work()
     static int ams_initialized = 0;
     if(!ams_initialized) {
         /*Connect to server */
-	sleep(20);
+	sleep(5);
         parse_command_line();
 	ams_initialized = 1;
-	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE);
+	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE, true);
 	client = new ams::Client(*engine);
     	if(i_should_participate_in_server_calls) {
     	    // Initialize a Client
@@ -220,17 +222,18 @@ void AscentPostProcess::post_advance_work()
      * 2. Send RPC call. This can be made one-sided (asynchronous) if needed*/
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
 
-    double ts;
-    if(my_rank == 0) {
-	    ts = MPI_Wtime();
-    }
+    unsigned int ts, min_ts;
+    //high resolution timestamp in microsecond
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    ts = (unsigned int)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 
-    /* If I am rank 0, I broadcast the ts to everyone else */
-    MPI_Bcast(&ts, 1, MPI_DOUBLE, 0, amrex::ParallelDescriptor::Communicator());
+    /* Min value of ts */
+    MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
 
     ams::AsyncRequest areq;
     if(!use_local and i_should_participate_in_server_calls) {
-        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, ts, &areq);
+        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, min_ts, &areq);
 
     } else if(use_local) {
 
