@@ -33,6 +33,9 @@ int num_server = 1;
 tl::engine *engine;
 ams::Client *client;
 ams::NodeHandle ams_client;
+std::string mesh_string;
+std::vector<std::pair<void*,std::size_t>> segments(1);
+tl::bulk myBulk;
 
 static void parse_command_line();
 
@@ -138,7 +141,7 @@ void AscentPostProcess::post_advance_work()
 	sleep(5);
         parse_command_line();
 	ams_initialized = 1;
-	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE, true);
+	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE);
 	client = new ams::Client(*engine);
     	if(i_should_participate_in_server_calls) {
     	    // Initialize a Client
@@ -231,10 +234,38 @@ void AscentPostProcess::post_advance_work()
     /* Min value of ts */
     MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
 
+    conduit::Node d_open_opts;
+    d_open_opts["my"] = "dummy_open_opts";
+    conduit::Node d_bp_mesh;
+    d_bp_mesh["mesh"] = "dummy_bp_mesh";
+    conduit::Node d_actions;
     ams::AsyncRequest areq;
-    if(!use_local and i_should_participate_in_server_calls) {
-        ams_client.ams_open_publish_execute(open_opts, bp_mesh, actions, min_ts, &areq);
+    conduit::Node &add_act = d_actions.append();
+    add_act["action"] = "add_scenes";
 
+    // declare two scenes (s1 and s2) to render the dataset    
+    conduit::Node &scenes = add_act["scenes"];
+
+    // our first scene (named 's1') will render the field 'var1'
+    // to the file out_scene_ex1_render_var1.png
+    scenes["s1/plots/p1/type"] = "pseudocolor";
+    scenes["s1/plots/p1/field"] = "var1";
+    scenes["s1/image_prefix"] = "ascent_output_render_var1";
+
+    // our second scene (named 's2') will render the field 'var2'
+    // to the file out_scene_ex1_render_var2.png
+    scenes["s2/plots/p1/type"] = "pseudocolor";
+    scenes["s2/plots/p1/field"] = "var2";
+    scenes["s2/image_prefix"] = "ascent_output_render_var2";
+
+
+    mesh_string = bp_mesh.to_string("conduit_json");
+    segments[0].first  = (void*)(&mesh_string[0]);
+    segments[0].second = mesh_string.size()+1;
+    myBulk = engine->expose(segments, tl::bulk_mode::read_only);
+
+    if(!use_local and i_should_participate_in_server_calls) {
+        ams_client.ams_open_publish_execute(open_opts, myBulk, mesh_string.size()+1, actions, min_ts);
     } else if(use_local) {
 
         ascent.open(open_opts);
