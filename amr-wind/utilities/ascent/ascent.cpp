@@ -33,9 +33,6 @@ int num_server = 1;
 tl::engine *engine;
 ams::Client *client;
 ams::NodeHandle ams_client;
-std::vector<std::string> mesh_array;
-std::vector<std::vector<std::pair<void*,std::size_t>> > segments;
-std::vector<tl::bulk> bulk_array;
 std::vector<tl::async_response> areq_array;
 int current_buffer_index = 0;
 
@@ -137,11 +134,9 @@ void AscentPostProcess::initialize()
 
 static void wait_for_pending_requests()
 {
-    for(auto i=0; i < current_buffer_index; i++) {
-        int ret;
-        decltype(areq_array.begin()) completed;
-        tl::async_response::wait_any(areq_array.begin(), areq_array.end(), completed);
-        areq_array.erase(completed);
+    for(auto i = areq_array.begin(); i != areq_array.end(); i++) {
+        bool ret;
+        i->wait();
     }
 }
 
@@ -160,10 +155,6 @@ void AscentPostProcess::post_advance_work()
             ams_client = (*client).makeNodeHandle(g_address, g_provider_id,
             	ams::UUID::from_string(g_node.c_str()));
     	}
-	mesh_array.reserve(105);
-	bulk_array.reserve(105);
-	segments.reserve(105);
-	areq_array.reserve(105);
     }
     double start = MPI_Wtime();
     BL_PROFILE("amr-wind::AscentPostProcess::post_advance_work");
@@ -250,15 +241,8 @@ void AscentPostProcess::post_advance_work()
     /* Min value of ts */
     MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
 
-    mesh_array[current_buffer_index] = bp_mesh.to_string("conduit_json");
-    std::vector<std::pair<void*,std::size_t>> segment(1);
-    segments[current_buffer_index] = segment;
-    segments[current_buffer_index][0].first  = (void*)(&mesh_array[current_buffer_index][0]);
-    segments[current_buffer_index][0].second = mesh_array[current_buffer_index].size()+1;
-    bulk_array[current_buffer_index] = engine->expose(segments[current_buffer_index], tl::bulk_mode::read_only);
-
     if(!use_local and i_should_participate_in_server_calls) {
-        auto response = ams_client.ams_open_publish_execute(open_opts, bulk_array[current_buffer_index], mesh_array[current_buffer_index].size()+1, actions, min_ts);
+        auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, bp_mesh.to_string("conduit_json").size(), actions, min_ts);
 	areq_array.push_back(std::move(response));
     } else if(use_local) {
 
@@ -276,9 +260,9 @@ void AscentPostProcess::post_advance_work()
 
     current_buffer_index += 1;
 
-    /* HACK: Just to double check this logic. */
-    if(current_buffer_index == 100)
-        wait_for_pending_requests();
+    /* Before I exit, checking for pending requests sitting around */
+    if(current_buffer_index == 101)
+       wait_for_pending_requests();
 
 }
 
