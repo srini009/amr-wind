@@ -261,8 +261,13 @@ void AscentPostProcess::post_advance_work()
     current_buffer_index += 1;
 
     /* Before I exit, checking for pending requests sitting around */
-    if(current_buffer_index == 101)
+    if(current_buffer_index == 101) {
        wait_for_pending_requests();
+       MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+       if(my_rank == 0) {
+           std::cerr << "Task ID: " << std::stoi(std::string(getenv("AMS_TASK_ID"))) << " is done." << std::endl;
+       }
+    }
 
 }
 
