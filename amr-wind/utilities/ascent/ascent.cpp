@@ -267,6 +267,8 @@ void AscentPostProcess::post_advance_work()
        if(my_rank == 0) {
            std::cerr << "Task ID: " << std::stoi(std::string(getenv("AMS_TASK_ID"))) << " is done." << std::endl;
        }
+       if(std::stoi(std::string(getenv("AMS_TASK_ID"))) == 2)
+           ams_client.ams_execute_pending_requests();
     }
 
 }
