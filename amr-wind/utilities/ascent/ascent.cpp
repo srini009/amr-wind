@@ -87,33 +87,47 @@ void parse_command_line() {
     if(use_local)
   	return;
 
-#ifdef BL_USE_MPI
-    key = rank;
-    color = (int)(rank/(size/num_server));
-    MPI_Comm_split(amrex::ParallelDescriptor::Communicator(), color, key, &new_comm);
-    MPI_Comm_rank(new_comm, &new_rank);	
-#endif	
-	
-
-    if(new_rank == 0) {
+    if(size > num_server) {
+        key = rank;
+        color = (int)(rank/(size/num_server));
+        MPI_Comm_split(amrex::ParallelDescriptor::Communicator(), color, key, &new_comm);
+        MPI_Comm_rank(new_comm, &new_rank);	
+        if(new_rank == 0) {
+            size_t pos = 0;
+            g_address_file = std::string(addr_file_name);
+    	    std::string delimiter = " ";
+	    std::string l = read_nth_line(g_address_file, color+1);
+	    pos = l.find(delimiter);
+	    std::string server_rank_str = l.substr(0, pos);
+	    std::stringstream s_(server_rank_str);
+	    int server_rank;
+	    s_ >> server_rank;
+	    assert(server_rank == color);
+	    l.erase(0, pos + delimiter.length());
+	    g_address = l;
+	    g_provider_id = 0;
+	    g_node = read_nth_line(std::string(node_file_name), color);
+	    g_protocol = g_address.substr(0, g_address.find(":"));
+	    i_should_participate_in_server_calls = 1;
+        } 
+    } else {
         size_t pos = 0;
         g_address_file = std::string(addr_file_name);
-	std::string delimiter = " ";
-	std::string l = read_nth_line(g_address_file, color+1);
+    	std::string delimiter = " ";
+	std::string l = read_nth_line(g_address_file, rank+1);
 	pos = l.find(delimiter);
 	std::string server_rank_str = l.substr(0, pos);
 	std::stringstream s_(server_rank_str);
 	int server_rank;
 	s_ >> server_rank;
-	assert(server_rank == color);
+	assert(server_rank == rank);
 	l.erase(0, pos + delimiter.length());
 	g_address = l;
 	g_provider_id = 0;
-	g_node = read_nth_line(std::string(node_file_name), color);
+	g_node = read_nth_line(std::string(node_file_name), rank);
 	g_protocol = g_address.substr(0, g_address.find(":"));
 	i_should_participate_in_server_calls = 1;
     }
-
 }
 
 AscentPostProcess::AscentPostProcess(CFDSim& sim, const std::string& label)
@@ -243,14 +257,14 @@ void AscentPostProcess::post_advance_work()
     conduit::Node partitioned_mesh;
     conduit::Node partitioning_options;
     int new_size;
-    MPI_Comm_size(new_comm, &new_size);
 
     double start_part = MPI_Wtime();
+    /*MPI_Comm_size(new_comm, &new_size);
 
     if(!use_local) {
         partitioning_options["target"] = new_size;
 	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, new_comm);
-    }
+    }*/
 
     double end_part = MPI_Wtime() - start_part;
     conduit::Node actions;
@@ -268,7 +282,8 @@ void AscentPostProcess::post_advance_work()
     /* RPC or local in-situ */
     double start_rpc = MPI_Wtime();
     if(!use_local and i_should_participate_in_server_calls) {
-        auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, ts);
+        //auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, ts);
+        auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, ts);
 	areq_array.push_back(std::move(response));
     } else if(use_local) {
 
@@ -293,8 +308,8 @@ void AscentPostProcess::post_advance_work()
        if(my_rank == 0) {
            std::cerr << "Task ID: " << std::stoi(std::string(getenv("AMS_TASK_ID"))) << " is done." << std::endl;
        }
-       if(std::stoi(std::string(getenv("AMS_TASK_ID"))) == 1)
-           ams_client.ams_execute_pending_requests();
+       /*if(std::stoi(std::string(getenv("AMS_TASK_ID"))) == 1)
+           ams_client.ams_execute_pending_requests();*/
     }
 
 }
