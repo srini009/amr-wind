@@ -41,6 +41,8 @@ MPI_Comm new_comm;
 int key = 0;
 int color = 0;
 int new_rank = 0;
+int use_partitioning = 0;
+int max_step = 0;
 
 /* End globals */
 
@@ -75,6 +77,7 @@ void parse_command_line() {
     char *node_file_name = getenv("AMS_NODE_ADDR_FILE");
     char *use_local_opt = getenv("AMS_USE_LOCAL_ASCENT");
     char *num_servers = getenv("AMS_NUM_SERVERS");
+    max_step = std::stoi(std::string(getenv("AMS_MAX_STEP")));
 
     /* The logic below grabs the server address corresponding the client's MPI rank (MXM case) */
     std::string num_servers_str = num_servers;
@@ -88,6 +91,7 @@ void parse_command_line() {
   	return;
 
     if(size > num_server) {
+        use_partitioning = 1;
         key = rank;
         color = (int)(rank/(size/num_server));
         MPI_Comm_split(amrex::ParallelDescriptor::Communicator(), color, key, &new_comm);
@@ -259,12 +263,15 @@ void AscentPostProcess::post_advance_work()
     int new_size;
 
     double start_part = MPI_Wtime();
-    /*MPI_Comm_size(new_comm, &new_size);
 
-    if(!use_local) {
+    MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+
+    if(!use_local and use_partitioning) {
+        MPI_Comm_size(new_comm, &new_size);
         partitioning_options["target"] = new_size;
+	partitioning_options["mapping"] = 0;
 	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, new_comm);
-    }*/
+    }
 
     double end_part = MPI_Wtime() - start_part;
     conduit::Node actions;
@@ -282,9 +289,13 @@ void AscentPostProcess::post_advance_work()
     /* RPC or local in-situ */
     double start_rpc = MPI_Wtime();
     if(!use_local and i_should_participate_in_server_calls) {
-        //auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, ts);
-        auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, ts);
-	areq_array.push_back(std::move(response));
+        if(use_partitioning) {
+            auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, ts);
+	    areq_array.push_back(std::move(response));
+        } else {
+            auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, ts);
+	    areq_array.push_back(std::move(response));
+        }
     } else if(use_local) {
 
         ascent.open(open_opts);
@@ -296,13 +307,18 @@ void AscentPostProcess::post_advance_work()
     double end_rpc = MPI_Wtime() - start_rpc;
 
     double end = MPI_Wtime();
-    if(my_rank == 0)
-        std::cout << "Total time for ascent call on process: " << end-start  << " mesh_data collection: " << end_mesh_collection << " part time: " << end_part << " and rpc time: " << end_rpc  << " ts time: " << end_ts << std::endl;
+    if(my_rank == 0) {
+        std::cout << "======================================================" << std::endl;
+        std::cout << "Total time: " << end-start  << std::endl;
+        std::cout << "Partitioning cost: " << end_part << std::endl; 
+        std::cout << "RPC time: " << end_rpc << std::endl;
+        std::cout << "======================================================" << std::endl;
+    }
 
     current_buffer_index += 1;
 
     /* Before I exit, checking for pending requests sitting around */
-    if(!use_local and current_buffer_index == 101) {
+    if(!use_local and current_buffer_index == max_step + 1) {
        wait_for_pending_requests();
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
        if(my_rank == 0) {
