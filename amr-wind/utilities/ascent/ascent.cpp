@@ -176,11 +176,18 @@ static void wait_for_pending_requests()
         bool ret;
         i->wait();
     }
+    margo_instance_id mid = engine->get_margo_instance();
+    margo_finalize(mid);
 }
 
 void AscentPostProcess::post_advance_work()
 {
     static int ams_initialized = 0;
+    static double total_time = 0;
+    static double total_rpc_time = 0;
+    static double total_part_time = 0;
+    static double total_barrier_time = 0;
+
     if(!ams_initialized) {
         /*Connect to server */
 	sleep(5);
@@ -262,9 +269,11 @@ void AscentPostProcess::post_advance_work()
     conduit::Node partitioning_options;
     int new_size;
 
-    double start_part = MPI_Wtime();
-
+    double start_barrier = MPI_Wtime();
     MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+    double end_barrier = MPI_Wtime() - start_barrier;
+
+    double start_part = MPI_Wtime();
 
     if(!use_local and use_partitioning) {
         MPI_Comm_size(new_comm, &new_size);
@@ -308,10 +317,15 @@ void AscentPostProcess::post_advance_work()
 
     double end = MPI_Wtime();
     if(my_rank == 0) {
+	total_time += end-start;
+	total_rpc_time += end_rpc;
+	total_part_time += end_part;
+	total_barrier_time += end_barrier;
         std::cout << "======================================================" << std::endl;
-        std::cout << "Total time: " << end-start  << std::endl;
-        std::cout << "Partitioning cost: " << end_part << std::endl; 
-        std::cout << "RPC time: " << end_rpc << std::endl;
+        std::cout << "Total time: " << total_time  << std::endl;
+        std::cout << "Total partitioning cost: " << total_part_time << std::endl; 
+        std::cout << "Total RPC time: " << total_rpc_time << std::endl;
+        std::cout << "Total Barrier time: " << total_barrier_time << std::endl;
         std::cout << "======================================================" << std::endl;
     }
 
