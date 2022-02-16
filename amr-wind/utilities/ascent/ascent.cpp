@@ -170,14 +170,16 @@ void AscentPostProcess::initialize()
     }
 }
 
-static void wait_for_pending_requests()
+static double wait_for_pending_requests()
 {
+
+    double start = MPI_Wtime();
     for(auto i = areq_array.begin(); i != areq_array.end(); i++) {
         bool ret;
         i->wait();
     }
-    margo_instance_id mid = engine->get_margo_instance();
-    margo_finalize(mid);
+    double end = MPI_Wtime() - start;
+    return end;
 }
 
 void AscentPostProcess::post_advance_work()
@@ -292,17 +294,17 @@ void AscentPostProcess::post_advance_work()
     ts = (unsigned int)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 
     double start_ts = MPI_Wtime();
-    //MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
+    MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
     double end_ts = MPI_Wtime() - start_ts;
 
     /* RPC or local in-situ */
     double start_rpc = MPI_Wtime();
     if(!use_local and i_should_participate_in_server_calls) {
         if(use_partitioning) {
-            auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, ts);
+            auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, min_ts);
 	    areq_array.push_back(std::move(response));
         } else {
-            auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, ts);
+            auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, min_ts);
 	    areq_array.push_back(std::move(response));
         }
     } else if(use_local) {
@@ -325,7 +327,7 @@ void AscentPostProcess::post_advance_work()
         std::cout << "Total time: " << total_time  << std::endl;
         std::cout << "Total partitioning cost: " << total_part_time << std::endl; 
         std::cout << "Total RPC time: " << total_rpc_time << std::endl;
-        std::cout << "Total Barrier time: " << total_barrier_time << std::endl;
+        std::cout << "Total barrier time: " << total_barrier_time << std::endl;
         std::cout << "======================================================" << std::endl;
     }
 
@@ -333,13 +335,17 @@ void AscentPostProcess::post_advance_work()
 
     /* Before I exit, checking for pending requests sitting around */
     if(!use_local and current_buffer_index == max_step + 1) {
-       wait_for_pending_requests();
+       double wait_time = wait_for_pending_requests();
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
        if(my_rank == 0) {
            std::cerr << "Task ID: " << std::stoi(std::string(getenv("AMS_TASK_ID"))) << " is done." << std::endl;
+           std::cout << "Total wait time: " << wait_time << std::endl;
        }
-       /*if(std::stoi(std::string(getenv("AMS_TASK_ID"))) == 1)
+       /*if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))))
            ams_client.ams_execute_pending_requests();*/
+       MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+       margo_instance_id mid = engine->get_margo_instance();
+       margo_finalize(mid);
     }
 
 }
