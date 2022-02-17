@@ -43,6 +43,7 @@ int color = 0;
 int new_rank = 0;
 int use_partitioning = 0;
 int max_step = 0;
+int server_instance_id = 0;
 
 /* End globals */
 
@@ -76,7 +77,8 @@ void parse_command_line() {
     char *addr_file_name = getenv("AMS_SERVER_ADDR_FILE");
     char *node_file_name = getenv("AMS_NODE_ADDR_FILE");
     char *use_local_opt = getenv("AMS_USE_LOCAL_ASCENT");
-    char *num_servers = getenv("AMS_NUM_SERVERS");
+    char *num_servers = getenv("AMS_NUM_SERVERS_PER_INSTANCE");
+    server_instance_id = std::stoi(std::string(getenv("AMS_SERVER_INSTANCE_ID")));
     max_step = std::stoi(std::string(getenv("AMS_MAX_STEP")));
 
     /* The logic below grabs the server address corresponding the client's MPI rank (MXM case) */
@@ -100,7 +102,7 @@ void parse_command_line() {
             size_t pos = 0;
             g_address_file = std::string(addr_file_name);
     	    std::string delimiter = " ";
-	    std::string l = read_nth_line(g_address_file, color+1);
+	    std::string l = read_nth_line(g_address_file, server_instance_id*num_server + color + 1);
 	    pos = l.find(delimiter);
 	    std::string server_rank_str = l.substr(0, pos);
 	    std::stringstream s_(server_rank_str);
@@ -110,7 +112,7 @@ void parse_command_line() {
 	    l.erase(0, pos + delimiter.length());
 	    g_address = l;
 	    g_provider_id = 0;
-	    g_node = read_nth_line(std::string(node_file_name), color);
+	    g_node = read_nth_line(std::string(node_file_name), server_instance_id*num_server + color);
 	    g_protocol = g_address.substr(0, g_address.find(":"));
 	    i_should_participate_in_server_calls = 1;
         } 
@@ -118,7 +120,7 @@ void parse_command_line() {
         size_t pos = 0;
         g_address_file = std::string(addr_file_name);
     	std::string delimiter = " ";
-	std::string l = read_nth_line(g_address_file, rank+1);
+	std::string l = read_nth_line(g_address_file, server_instance_id*num_server + rank + 1);
 	pos = l.find(delimiter);
 	std::string server_rank_str = l.substr(0, pos);
 	std::stringstream s_(server_rank_str);
@@ -128,7 +130,7 @@ void parse_command_line() {
 	l.erase(0, pos + delimiter.length());
 	g_address = l;
 	g_provider_id = 0;
-	g_node = read_nth_line(std::string(node_file_name), rank);
+	g_node = read_nth_line(std::string(node_file_name), server_instance_id*num_server + rank);
 	g_protocol = g_address.substr(0, g_address.find(":"));
 	i_should_participate_in_server_calls = 1;
     }
