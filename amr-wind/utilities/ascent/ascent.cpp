@@ -189,6 +189,8 @@ void AscentPostProcess::post_advance_work()
     static double total_rpc_time = 0;
     static double total_part_time = 0;
     static double total_barrier_time = 0;
+    static double total_mesh_time = 0;
+    static double total_allreduce_time = 0;
 
     if(!ams_initialized) {
         /*Connect to server */
@@ -271,9 +273,16 @@ void AscentPostProcess::post_advance_work()
     conduit::Node partitioning_options;
     int new_size;
 
-    double start_barrier = MPI_Wtime();
-    MPI_Barrier(amrex::ParallelDescriptor::Communicator());
-    double end_barrier = MPI_Wtime() - start_barrier;
+    /* Get timestamp */
+    unsigned int ts, min_ts = 0;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    ts = (unsigned int)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
+
+    double start_ts = MPI_Wtime();
+    if(!use_local)
+        MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
+    double end_ts = MPI_Wtime() - start_ts;
 
     double start_part = MPI_Wtime();
 
@@ -286,16 +295,6 @@ void AscentPostProcess::post_advance_work()
 
     double end_part = MPI_Wtime() - start_part;
     conduit::Node actions;
-
-    /* Get timestamp */
-    unsigned int ts, min_ts;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    ts = (unsigned int)(tv.tv_sec * 1000 + tv.tv_usec / 1000);
-
-    double start_ts = MPI_Wtime();
-    MPI_Allreduce(&ts, &min_ts, 1, MPI_UNSIGNED, MPI_MIN, amrex::ParallelDescriptor::Communicator());
-    double end_ts = MPI_Wtime() - start_ts;
 
     /* RPC or local in-situ */
     double start_rpc = MPI_Wtime();
@@ -322,12 +321,15 @@ void AscentPostProcess::post_advance_work()
 	total_time += end-start;
 	total_rpc_time += end_rpc;
 	total_part_time += end_part;
-	total_barrier_time += end_barrier;
+	total_mesh_time += end_mesh_collection;
+	total_allreduce_time += end_ts;
+
         std::cout << "======================================================" << std::endl;
         std::cout << "Total time: " << total_time  << std::endl;
         std::cout << "Total partitioning cost: " << total_part_time << std::endl; 
         std::cout << "Total RPC time: " << total_rpc_time << std::endl;
-        std::cout << "Total barrier time: " << total_barrier_time << std::endl;
+        std::cout << "Total mesh time: " << total_mesh_time << std::endl;
+        std::cout << "Total timestamp collection time: " << total_allreduce_time << std::endl;
         std::cout << "======================================================" << std::endl;
     }
 
