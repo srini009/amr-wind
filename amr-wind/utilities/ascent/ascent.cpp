@@ -13,9 +13,13 @@
 #include <conduit_blueprint.hpp>
 #include <conduit_blueprint_mesh_utils.hpp>
 #include <conduit_blueprint_mpi_mesh.hpp>
+#include <conduit_blueprint_mesh.hpp>
+#include <conduit_blueprint_mesh_partition.hpp>
 #include <abt.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <iostream>
+#include <fstream>
 
 namespace tl = thallium;
 namespace amr_wind {
@@ -290,8 +294,61 @@ void AscentPostProcess::post_advance_work()
 
     if(!use_local and use_partitioning) {
         MPI_Comm_size(new_comm, &new_size);
-        partitioning_options["target"] = new_size;
+        int new_rank;
+        MPI_Comm_rank(new_comm, &new_rank);
+
+        partitioning_options["target"] = 1;
 	partitioning_options["mapping"] = 0;
+        double start_gather = MPI_Wtime();
+	std::string bp_mesh_str = bp_mesh.to_string("conduit_base64_json");
+        int bp_mesh_size = bp_mesh_str.size();
+
+        int * bp_mesh_sizes = (int*)malloc(sizeof(int)*new_size);
+        int * displacements = (int*)malloc(sizeof(int)*new_size);
+        int total_bytes = 0;
+
+        MPI_Gather(&bp_mesh_size, 1, MPI_INT, bp_mesh_sizes, 1, MPI_INT, 0, new_comm);
+
+        displacements[0] = 0;
+        if(new_rank == 0) {
+             for (int i = 0; i < new_size; i++) {
+                 total_bytes += bp_mesh_sizes[i];
+                 if(i > 0)
+                     displacements[i] = displacements[i-1] + bp_mesh_sizes[i-1];
+             }
+        }
+
+        char * recv_string = (char*)malloc(sizeof(char)*total_bytes);
+
+
+        MPI_Gatherv(bp_mesh_str.data(), bp_mesh_size, MPI_BYTE, recv_string, bp_mesh_sizes, displacements, MPI_BYTE, 0, new_comm);
+        std::vector<std::string> partition_strings;
+
+        if(new_rank == 0) {
+            std::vector<conduit::Node *> doms;
+            std::vector<conduit::index_t> chunk_ids;
+            conduit::Node combined_mesh;
+            for(int i = 0; i < new_size; i++) {
+                conduit::Node mesh_to_be_partitioned;
+                std::vector<conduit::Node *> local_doms;
+                partition_strings.push_back(std::string(recv_string+displacements[i], bp_mesh_sizes[i]));
+                mesh_to_be_partitioned.parse(partition_strings[partition_strings.size()-1], "conduit_base64_json");
+		conduit::blueprint::mesh::domains(mesh_to_be_partitioned, local_doms);
+		for (auto & element : local_doms) {
+                    chunk_ids.push_back(doms.size());
+                    doms.push_back(std::move(element));
+                }
+                std::cout << "Number of total domains: " << doms.size() << std::endl;
+            }
+            conduit::blueprint::mesh::Partitioner p;
+            p.combine(new_rank, doms, chunk_ids, combined_mesh);
+        }
+
+
+        double end_gather = MPI_Wtime() - start_gather;
+        if(new_rank == 0)
+           std::cerr << "MPI_Gather took: " << end_gather << std::endl;
+
 	conduit::blueprint::mpi::mesh::partition(bp_mesh, partitioning_options, partitioned_mesh, new_comm);
     }
 
