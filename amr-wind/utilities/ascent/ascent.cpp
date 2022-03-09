@@ -14,7 +14,6 @@
 #include <conduit_blueprint_mesh_utils.hpp>
 #include <conduit_blueprint_mpi_mesh.hpp>
 #include <conduit_blueprint_mesh.hpp>
-#include <conduit_blueprint_mesh_partition.hpp>
 #include <abt.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -200,7 +199,6 @@ void AscentPostProcess::post_advance_work()
 
     if(!ams_initialized) {
         /*Connect to server */
-	sleep(5);
         parse_command_line();
 	ams_initialized = 1;
 	engine = new tl::engine(g_protocol, THALLIUM_CLIENT_MODE);
@@ -356,40 +354,47 @@ void AscentPostProcess::post_advance_work()
         }
     } else if(use_local) {
 
-        ascent.open(open_opts);
+        /*ascent.open(open_opts);
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
-	ascent.close();
+	ascent.close();*/
     }
 
     double end_rpc = MPI_Wtime() - start_rpc;
 
     double end = MPI_Wtime();
-    if(my_rank == 0) {
-	total_time += end-start;
-	total_rpc_time += end_rpc;
-	total_part_time += end_part;
-	total_mesh_time += end_mesh_collection;
-	total_allreduce_time += end_ts;
+    total_time += end-start;
+    total_rpc_time += end_rpc;
+    total_part_time += end_part;
+    total_mesh_time += end_mesh_collection;
+    total_allreduce_time += end_ts;
 
-        std::cout << "======================================================" << std::endl;
-        std::cout << "Total time: " << total_time  << std::endl;
-        std::cout << "Total partitioning cost: " << total_part_time << std::endl; 
-        std::cout << "Total RPC time: " << total_rpc_time << std::endl;
-        std::cout << "Total mesh time: " << total_mesh_time << std::endl;
-        std::cout << "Total timestamp collection time: " << total_allreduce_time << std::endl;
-        std::cout << "======================================================" << std::endl;
-    }
 
     current_buffer_index += 1;
 
     /* Before I exit, checking for pending requests sitting around */
     if(!use_local and current_buffer_index == max_step + 1) {
        double wait_time = wait_for_pending_requests();
+       double max_total_time, max_total_rpc_time, max_total_part_time, max_total_mesh_time, max_total_allreduce_time, max_total_wait_time;
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
+
+       MPI_Reduce(&total_time, &max_total_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+       MPI_Reduce(&total_rpc_time, &max_total_rpc_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+       MPI_Reduce(&total_part_time, &max_total_part_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+       MPI_Reduce(&total_mesh_time, &max_total_mesh_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+       MPI_Reduce(&total_allreduce_time, &max_total_allreduce_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+       MPI_Reduce(&wait_time, &max_total_wait_time, 1, MPI_DOUBLE, MPI_MAX, 0, amrex::ParallelDescriptor::Communicator());
+
        if(my_rank == 0) {
            std::cerr << "Task ID: " << std::stoi(std::string(getenv("AMS_TASK_ID"))) << " is done." << std::endl;
-           std::cout << "Total wait time: " << wait_time << std::endl;
+           std::cout << "======================================================" << std::endl;
+           std::cout << "Total time: " << max_total_time  << std::endl;
+           std::cout << "Total partitioning cost: " << max_total_part_time << std::endl; 
+           std::cout << "Total RPC time: " << max_total_rpc_time << std::endl;
+           std::cout << "Total mesh time: " << max_total_mesh_time << std::endl;
+           std::cout << "Total timestamp collection time: " << max_total_allreduce_time << std::endl;
+           std::cout << "Total wait time: " << max_total_wait_time << std::endl;
+        std::cout << "======================================================" << std::endl;
        }
        /*if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))))
            ams_client.ams_execute_pending_requests();*/
