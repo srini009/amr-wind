@@ -354,10 +354,10 @@ void AscentPostProcess::post_advance_work()
         }
     } else if(use_local) {
 
-        /*ascent.open(open_opts);
+        ascent.open(open_opts);
 	ascent.publish(bp_mesh);
 	ascent.execute(actions);
-	ascent.close();*/
+	ascent.close();
     }
 
     double end_rpc = MPI_Wtime() - start_rpc;
@@ -396,8 +396,9 @@ void AscentPostProcess::post_advance_work()
            std::cout << "Total wait time: " << max_total_wait_time << std::endl;
         std::cout << "======================================================" << std::endl;
        }
-       /*if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))))
-           ams_client.ams_execute_pending_requests();*/
+       if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))) and 
+		       (std::stoi(std::string(getenv("AMS_SERVER_MODE")))) > 0)
+           ams_client.ams_execute_pending_requests();
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
        margo_instance_id mid = engine->get_margo_instance();
        margo_finalize(mid);
