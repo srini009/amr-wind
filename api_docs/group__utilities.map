@@ -1,0 +1,7 @@
+<map id="Utilities" name="Utilities">
+<area shape="rect" id="node1" href="$group__amr__utils.html" title="Mesh refinement." alt="" coords="146,5,278,31"/>
+<area shape="rect" id="node2" title="Utilities." alt="" coords="5,92,79,117"/>
+<area shape="rect" id="node3" href="$group__findinterface.html" title="Multiphase&#45;sampling utilities." alt="" coords="133,55,291,95"/>
+<area shape="rect" id="node4" href="$group__sampling.html" title="Data&#45;sampling utilities." alt="" coords="127,120,297,145"/>
+<area shape="rect" id="node5" href="$group__statistics.html" title="Field statistics." alt="" coords="154,169,270,195"/>
+</map>

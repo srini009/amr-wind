@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Section: time &mdash; AMR-Wind 0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Section: io" href="inputs_io.html" />
+    <link rel="prev" title="Section: amr" href="inputs_amr.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> AMR-Wind
+          </a>
+              <div class="version">
+                0.1
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="user.html">User Manual</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="build.html">Compiling AMR-Wind</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="inputs.html">AMR-Wind inputs file</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="inputs.html#input-file-reference">Input file reference</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="inputs_geometry.html">Section: geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_amr.html">Section: amr</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Section: time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_io.html">Section: io</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_incflo.html">Section: incflo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_transport.html">Section: transport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_turbulence.html">Section: turbulence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Momentum_Sources.html">Section: Momentum Sources</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_ABL.html">Section: ABL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Static_Refinement.html">Section: Static Refinement</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Boundary_conditions.html">Section: Boundary conditions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_MLMG.html">Section: MLMG options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_AMR_Tagging.html">Section: AMR Tagging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Sampling.html">Section: Sampling</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Averaging.html">Section: Averaging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_KineticEnergy.html">Section: KineticEnergy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Enstrophy.html">Section: Enstrophy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="inputs_Actuator.html">Section: Actuator</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="abl_bndry_io.html">AMR-Wind ABL Boundary I/O</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../theory/theory.html">Theory Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer/index.html">Developer Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">AMR-Wind</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="user.html">User Manual</a> &raquo;</li>
+          <li><a href="inputs.html">AMR-Wind inputs file</a> &raquo;</li>
+      <li>Section: time</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user/inputs_time.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="section-time">
+<h1>Section: time<a class="headerlink" href="#section-time" title="Permalink to this headline"></a></h1>
+<p>This section deals with parameters that control the simulation.</p>
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.stop_time">
+<span class="sig-name descname"><span class="pre">time.stop_time</span></span><a class="headerlink" href="#input_param-time.stop_time" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Real number</p>
+<p>The time (in seconds) when the simulation should stop. This parameter is
+related to <a class="reference internal" href="#input_param-time.max_step"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">time.max_step</span></code></a> depending on whether the user
+provides a positive or negative value for this input. If the user provides a
+positive value, then the stop criteria is such that the simulation stops when
+it reaches the <code class="docutils literal notranslate"><span class="pre">stop_time</span></code>. If the user specifies a negative value, then
+the simulation stops when it has completed the prescribed number of steps as
+determined by <a class="reference internal" href="#input_param-time.max_step"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">time.max_step</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.max_step">
+<span class="sig-name descname"><span class="pre">time.max_step</span></span><a class="headerlink" href="#input_param-time.max_step" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer</p>
+<p>The number of timesteps to run before termination. See also
+<a class="reference internal" href="#input_param-time.stop_time"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">time.stop_time</span></code></a>.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.fixed_dt">
+<span class="sig-name descname"><span class="pre">time.fixed_dt</span></span><a class="headerlink" href="#input_param-time.fixed_dt" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Real number</p>
+<p>Fixed timestep size (in seconds) used to advance the simulation. If this
+parameter is negative, then <a class="reference internal" href="#input_param-time.cfl"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">time.cfl</span></code></a> is used to determine the
+adaptive timestep during the simulation.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.initial_dt">
+<span class="sig-name descname"><span class="pre">time.initial_dt</span></span><a class="headerlink" href="#input_param-time.initial_dt" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Real number</p>
+<p>Initial timestep size (in seconds) used to initialize the simulation.
+Only activated if <a class="reference internal" href="#input_param-time.fixed_dt"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">time.fixed_dt</span></code></a> is negative
+(signalling CFL controlled time stepping) and if <code class="docutils literal notranslate"><span class="pre">time.initial_dt</span></code> is positive.
+This parameter can be useful for starting CFL-controlled simulations like
+Rayleigh-Taylor flow that initialize with zero velocity.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.cfl">
+<span class="sig-name descname"><span class="pre">time.cfl</span></span><a class="headerlink" href="#input_param-time.cfl" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Real number, optional, default = 0.5</p>
+<p>The maximum CFL allowed during the simulation. Adaptive timestepping algorithm is
+used to ensure that the maximum CFL condition is not violated while using the largest
+allowable timestep to advance the simulation.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.init_shrink">
+<span class="sig-name descname"><span class="pre">time.init_shrink</span></span><a class="headerlink" href="#input_param-time.init_shrink" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Real number, optional, default = 0.1</p>
+<p><code class="docutils literal notranslate"><span class="pre">init_shrink</span></code> indicates a reduction factor applied to the timestep size
+during initialization phased used to perform the initial iterations to
+determine pressure. This factor must be a value greater than zero but less
+than or equal to 1.0.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.regrid_interval">
+<span class="sig-name descname"><span class="pre">time.regrid_interval</span></span><a class="headerlink" href="#input_param-time.regrid_interval" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer</p>
+<p>If <a class="reference internal" href="inputs_amr.html#input_param-amr.max_level"><code class="xref std std-input_param docutils literal notranslate"><span class="pre">amr.max_level</span></code></a> is greater than zero, this parameter
+indicates the frequency (in timesteps) at which the mesh is adaptively
+refined based on various user-specified criteria. If this value is negative,
+the mesh is only refined once during initialization and remains constant for
+the rest of the simulation.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.plot_interval">
+<span class="sig-name descname"><span class="pre">time.plot_interval</span></span><a class="headerlink" href="#input_param-time.plot_interval" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer</p>
+<p>If this value is greater than zero, it indicates the frequency (in timesteps)
+at which outputs (plot files) are written to disk.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.checkpoint_interval">
+<span class="sig-name descname"><span class="pre">time.checkpoint_interval</span></span><a class="headerlink" href="#input_param-time.checkpoint_interval" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer</p>
+<p>If this value is greater than zero, it indicates the frequency (in timesteps)
+at which checkpoint (restart) files are written to disk.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.regrid_start">
+<span class="sig-name descname"><span class="pre">time.regrid_start</span></span><a class="headerlink" href="#input_param-time.regrid_start" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer, optional, default = 0</p>
+<p>This user-specified parameter sets the base timestep onwards which the mesh is adaptively
+refined.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.plot_start">
+<span class="sig-name descname"><span class="pre">time.plot_start</span></span><a class="headerlink" href="#input_param-time.plot_start" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer, optional, default = 0</p>
+<p>This user-specified parameter sets the base timestep onwards which the output (plot files)
+are written to the disk.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.checkpoint_start">
+<span class="sig-name descname"><span class="pre">time.checkpoint_start</span></span><a class="headerlink" href="#input_param-time.checkpoint_start" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Integer, optional, default = 0</p>
+<p>This user-specified parameter sets the base timestep onwards which the checkpoint (restart)
+files are written to the disk.</p>
+</dd></dl>
+
+<dl class="std input_param">
+<dt class="sig sig-object std" id="input_param-time.use_force_cfl">
+<span class="sig-name descname"><span class="pre">time.use_force_cfl</span></span><a class="headerlink" href="#input_param-time.use_force_cfl" title="Permalink to this definition"></a></dt>
+<dd><p><strong>type:</strong> Boolean, optional, default = true</p>
+<p>If this flag is true then the forces (including the pressure gradient) are included
+in the CFL calculation.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="inputs_amr.html" class="btn btn-neutral float-left" title="Section: amr" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="inputs_io.html" class="btn btn-neutral float-right" title="Section: io" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
