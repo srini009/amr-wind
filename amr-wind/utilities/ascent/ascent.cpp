@@ -290,7 +290,7 @@ void AscentPostProcess::post_advance_work()
 
     double start_part = MPI_Wtime();
 
-    if(!use_local and use_partitioning) {
+    if(!use_local and use_partitioning and (current_buffer_index % (std::stoi(std::string(getenv("AMS_VIZ_FREQUENCY")))) == 0)) {
         MPI_Comm_size(new_comm, &new_size);
         int new_rank;
         MPI_Comm_rank(new_comm, &new_rank);
@@ -344,7 +344,7 @@ void AscentPostProcess::post_advance_work()
 
     /* RPC or local in-situ */
     double start_rpc = MPI_Wtime();
-    if(!use_local and i_should_participate_in_server_calls) {
+    if(!use_local and i_should_participate_in_server_calls and (current_buffer_index % (std::stoi(std::string(getenv("AMS_VIZ_FREQUENCY")))) == 0)) {
         if(use_partitioning) {
             auto response = ams_client.ams_open_publish_execute(open_opts, partitioned_mesh, 0, actions, min_ts);
 	    areq_array.push_back(std::move(response));
@@ -352,7 +352,7 @@ void AscentPostProcess::post_advance_work()
             auto response = ams_client.ams_open_publish_execute(open_opts, bp_mesh, 0, actions, min_ts);
 	    areq_array.push_back(std::move(response));
         }
-    } else if(use_local) {
+    } else if(use_local and (current_buffer_index % (std::stoi(std::string(getenv("AMS_VIZ_FREQUENCY")))) == 0)) {
 
         ascent.open(open_opts);
 	ascent.publish(bp_mesh);
@@ -368,6 +368,13 @@ void AscentPostProcess::post_advance_work()
     total_part_time += end_part;
     total_mesh_time += end_mesh_collection;
     total_allreduce_time += end_ts;
+    if(my_rank == 0) {
+           std::cout << "======================================================" << std::endl;
+           std::cout << "Current Total time: " << total_time  << std::endl;
+           std::cout << "Current Total partitioning cost: " << total_part_time << std::endl; 
+           std::cout << "Current Total RPC time: " << total_rpc_time << std::endl;
+           std::cout << "======================================================" << std::endl;
+    }
 
 
     current_buffer_index += 1;
@@ -396,8 +403,7 @@ void AscentPostProcess::post_advance_work()
            std::cout << "Total wait time: " << max_total_wait_time << std::endl;
         std::cout << "======================================================" << std::endl;
        }
-       if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) <= 64)
-		      and (std::stoi(std::string(getenv("AMS_TASK_ID"))) >= 61))  {
+       if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == (std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))) and (std::stoi(std::string(getenv("AMS_SERVER_MODE"))) == 1))  {
            ams_client.ams_execute_pending_requests();
        }
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
