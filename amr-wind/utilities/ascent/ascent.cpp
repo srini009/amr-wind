@@ -403,7 +403,7 @@ void AscentPostProcess::post_advance_work()
            std::cout << "Total wait time: " << max_total_wait_time << std::endl;
         std::cout << "======================================================" << std::endl;
        }
-       if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == (std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))) and (std::stoi(std::string(getenv("AMS_SERVER_MODE"))) == 1))  {
+       if(i_should_participate_in_server_calls and (std::stoi(std::string(getenv("AMS_TASK_ID"))) == (std::stoi(std::string(getenv("AMS_MAX_TASK_ID")))) and (std::stoi(std::string(getenv("AMS_SERVER_MODE"))) == 1)))  {
            ams_client.ams_execute_pending_requests();
        }
        MPI_Barrier(amrex::ParallelDescriptor::Communicator());
