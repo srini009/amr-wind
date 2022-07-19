@@ -19,7 +19,6 @@
 #include <iostream>
 #include <fstream>
 
-namespace tl = thallium;
 namespace amr_wind {
 namespace ascent_int {
 
