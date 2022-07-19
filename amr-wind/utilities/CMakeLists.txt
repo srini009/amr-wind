@@ -26,3 +26,7 @@ endif()
 if (AMR_WIND_ENABLE_ASCENT)
    add_subdirectory(ascent)
 endif()
+
+if (AMR_WIND_ENABLE_COLZA)
+   add_subdirectory(colza)
+endif()
