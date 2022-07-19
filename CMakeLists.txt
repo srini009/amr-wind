@@ -7,15 +7,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(amr-wind-utils)
-#Ascent Microservice Package
-find_package(PkgConfig REQUIRED)
-find_package (thallium REQUIRED)
-find_package (nlohmann_json REQUIRED)
-# search for spdlog
-pkg_check_modules(AMS_CLIENT REQUIRED IMPORTED_TARGET ams-client)
-pkg_check_modules(TCLAP REQUIRED IMPORTED_TARGET tclap)
-pkg_check_modules (UUID REQUIRED IMPORTED_TARGET uuid)
-
 
 ########################## OPTIONS #####################################
 
